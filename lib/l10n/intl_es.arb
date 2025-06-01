@@ -1,0 +1,9 @@
+{
+  "title": "Conversor de Divisas",
+  "enterValue": "Valor en pesos colombianos (COP)",
+  "selectCurrencies": "Seleccione las divisas a convertir:",
+  "convert": "Convertir",
+  "enterNumber": "Ingrese un número válido",
+  "enterValuePrompt": "Ingrese un valor",
+  "noInternet": "Sin conexión a Internet. El valor mostrado podría no estar actualizado."
+}
