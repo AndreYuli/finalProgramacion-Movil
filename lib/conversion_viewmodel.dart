@@ -58,16 +58,14 @@ class ConversionPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // ...existing widgets...
             if (_viewModel.offline)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  S.of(context).noInternet,
+                  'No internet connection',
                   style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
                 ),
               ),
-            // ...existing widgets...
           ],
         ),
       ),

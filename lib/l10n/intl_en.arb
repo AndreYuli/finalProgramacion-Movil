@@ -1,9 +1,0 @@
-{
-  "title": "Currency Converter",
-  "enterValue": "Amount in Colombian pesos (COP)",
-  "selectCurrencies": "Select currencies to convert:",
-  "convert": "Convert",
-  "enterNumber": "Enter a valid number",
-  "enterValuePrompt": "Enter a value",
-  "noInternet": "No Internet connection. The value shown may not be up to date."
-}

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cambio/generated/l10n.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'l10n/app_localizations.dart';
 import 'conversion_viewmodel.dart';
-import 'currency_repository.dart';
+import 'currency_repository.dart'; 
 
 class ConversionPage extends StatefulWidget {
   final void Function(String)? onLocaleChange;
@@ -18,16 +19,20 @@ class _ConversionPageState extends State<ConversionPage> {
   List<String> _selectedCurrencies = [];
 
   late final ConversionViewModel _viewModel;
+  double? _lastConvertedAmount;
 
   @override
   void initState() {
     super.initState();
     _viewModel = ConversionViewModel(
-      repository: CurrencyRepository(
-        apiKey: '041ab2c42d648f6301e7c07d',
-      ),
+      repository: CurrencyRepository(apiKey: '041ab2c42d648f6301e7c07d'),
     );
     _viewModel.addListener(_onViewModelChanged);
+
+    // Verificar conexión después de que se construya el widget
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkInternetAndShowWarning();
+    });
   }
 
   @override
@@ -37,33 +42,71 @@ class _ConversionPageState extends State<ConversionPage> {
     super.dispose();
   }
 
-  void _onViewModelChanged() => setState(() {});
+  void _onViewModelChanged() {
+    setState(() {});
+    if (_viewModel.offline && _viewModel.results.isNotEmpty) {
+      _showNoInternetSnackBar();
+    }
+  }
+
+  Future<void> _checkInternetAndShowWarning() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showNoInternetSnackBar();
+    }
+  }
+
+  void _showNoInternetSnackBar() {
+    final s = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(s.noInternet),
+        duration: Duration(seconds: 4),
+      ),
+    );
+  }
 
   void _convert() {
-    if (_formKey.currentState!.validate() && _selectedCurrencies.isNotEmpty) {
+    final s = AppLocalizations.of(context)!;
+    if (_formKey.currentState!.validate()) {
+      if (_selectedCurrencies.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(s.selectCurrencies)),
+        );
+        return;
+      }
       final pesos = double.parse(_pesosController.text);
+      _lastConvertedAmount = pesos;
       _viewModel.convert(pesos, _selectedCurrencies);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = S.of(context);
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(s.title),
+        backgroundColor: Colors.indigo, // Color más visible
+        title: Text(s.title, style: TextStyle(color: Colors.white)),
         actions: [
-          DropdownButton<String>(
-            value: Localizations.localeOf(context).languageCode,
-            items: [
-              DropdownMenuItem(value: 'es', child: Text('ES')),
-              DropdownMenuItem(value: 'en', child: Text('EN')),
-            ],
-            onChanged: (value) {
-              if (value != null && widget.onLocaleChange != null) {
-                widget.onLocaleChange!(value);
-              }
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Tooltip(
+              message: s.selectCurrencies,
+              child: PopupMenuButton<String>(
+                icon: Icon(Icons.language, color: Colors.amber, size: 32), // Más grande y visible
+                onSelected: (value) {
+                  if (widget.onLocaleChange != null) {
+                    widget.onLocaleChange!(value);
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(value: 'es', child: Text('Español')),
+                  PopupMenuItem(value: 'en', child: Text('English')),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -90,7 +133,10 @@ class _ConversionPageState extends State<ConversionPage> {
               SizedBox(height: 16),
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text(s.selectCurrencies, style: TextStyle(fontWeight: FontWeight.bold)),
+                child: Text(
+                  s.selectCurrencies,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
               ..._currencies.map((currency) => CheckboxListTile(
                     title: Text(currency),
@@ -106,18 +152,29 @@ class _ConversionPageState extends State<ConversionPage> {
                     },
                   )),
               SizedBox(height: 16),
-              ElevatedButton(
+              OutlinedButton.icon(
+                icon: Icon(Icons.swap_horiz),
+                label: Text(s.convert),
                 onPressed: _viewModel.loading ? null : _convert,
-                child: Text(s.convert),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.indigo,
+                  side: BorderSide(color: Colors.indigo),
+                  textStyle: TextStyle(fontSize: 18),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
               ),
               SizedBox(height: 24),
               if (_viewModel.loading) CircularProgressIndicator(),
-              if (_viewModel.results.isNotEmpty)
+              if (_viewModel.results.isNotEmpty && _lastConvertedAmount != null)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: _viewModel.results.entries
-                      .map((entry) => Text(
-                          '${_pesosController.text} COP = ${entry.value.toStringAsFixed(2)} ${entry.key}'))
+                      .map(
+                        (entry) => Text(
+                          '${_lastConvertedAmount!.toStringAsFixed(2)} COP = '
+                          '${entry.value.toStringAsFixed(2)} ${entry.key}',
+                        ),
+                      )
                       .toList(),
                 ),
             ],
